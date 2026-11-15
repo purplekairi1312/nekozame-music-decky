@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 import socket
+import ssl
 import subprocess
 import time
 import urllib.request
@@ -21,6 +22,10 @@ import decky
 TAUON = "http://127.0.0.1:7814/api1/"
 YTDLP = os.path.join(decky.DECKY_PLUGIN_RUNTIME_DIR, "yt-dlp")
 YTDLP_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+# decky's own python has no certificates of its own: the system's
+CA = next((f for f in ("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", "/etc/pki/tls/certs/ca-bundle.crt",
+                       "/etc/ssl/certs/ca-certificates.crt",
+                       "/etc/ssl/cert.pem") if os.path.exists(f)), None)
 UID = os.getuid()
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{UID}"
 SOCK = os.path.join(RUN, "nekozame-music-youtube.sock")
@@ -45,6 +50,13 @@ def tauon(path):
         return json.loads(body) if body.strip().startswith(b"{") else {}
     except (OSError, ValueError):
         return None
+
+
+def download(url, path):
+    context = ssl.create_default_context(cafile=CA)
+    with urllib.request.urlopen(url, timeout=60, context=context) as r, open(path, "wb") as f:
+        while chunk := r.read(1 << 16):
+            f.write(chunk)
 
 
 def mpv_command():
@@ -87,7 +99,7 @@ class Plugin:
         if not os.path.exists(YTDLP):
             os.makedirs(os.path.dirname(YTDLP), exist_ok=True)
             tmp = YTDLP + ".part"
-            await asyncio.to_thread(urllib.request.urlretrieve, YTDLP_URL, tmp)
+            await asyncio.to_thread(download, YTDLP_URL, tmp)
             os.chmod(tmp, 0o755)
             os.replace(tmp, YTDLP)
         elif time.time() - os.path.getmtime(YTDLP) > 7 * 86400:
