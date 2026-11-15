@@ -1,0 +1,11 @@
+{
+  "name": "nekozame music",
+  "author": "purplekairi1312",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["music", "tauon", "youtube"],
+    "description": "Your music while you play: Tauon's controls and YouTube without ads, in the Quick Access menu.",
+    "image": "https://raw.githubusercontent.com/purplekairi1312/nekozame-theme/main/assets/logo.png"
+  }
+}
